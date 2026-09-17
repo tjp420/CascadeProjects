@@ -2441,7 +2441,7 @@ body{font-family:var(--vscode-font-family,system-ui,-apple-system,BlinkMacSystem
           <option value="security">Security Focus</option>
         </select>
         <label class="q-checkbox">
-          <input type="checkbox" id="qFullTreeCheck" checked> Full tree scan
+          <input type="checkbox" id="qFullTreeCheck"> Full tree scan
         </label>
       </div>
       <button id="qRunBtn" class="q-btn-primary">Run Quality Analysis</button>
@@ -3444,7 +3444,7 @@ body{font-family:var(--vscode-font-family,system-ui,-apple-system,BlinkMacSystem
           <option value="quality">Quality Focus</option>
         </select>
         <label class="sc-checkbox">
-          <input type="checkbox" id="scanFullTreeCheck" checked> Full tree scan
+          <input type="checkbox" id="scanFullTreeCheck"> Full tree scan
         </label>
       </div>
       <button id="scanStartBtn" class="sc-btn-primary">Start Scan</button>
@@ -4943,14 +4943,14 @@ if (qDetectBtn) qDetectBtn.addEventListener('click', () => vscode.postMessage({ 
 if (qRunBtn) qRunBtn.addEventListener('click', () => {
   const path = qPathInput ? qPathInput.value : '';
   const mode = qModeSelect ? qModeSelect.value : 'quality';
-  const fullDirectory = qFullTreeCheck ? qFullTreeCheck.checked : true;
+  const fullDirectory = qFullTreeCheck ? qFullTreeCheck.checked : false;
   vscode.postMessage({ command: 'runQualityAnalysis', path, mode, fullDirectory });
 });
 const qAnalyzeBtn = document.getElementById('qAnalyzeBtn');
 if (qAnalyzeBtn) qAnalyzeBtn.addEventListener('click', () => {
   const path = qPathInput ? qPathInput.value : '';
   const mode = qModeSelect ? qModeSelect.value : 'quality';
-  const fullDirectory = qFullTreeCheck ? qFullTreeCheck.checked : true;
+  const fullDirectory = qFullTreeCheck ? qFullTreeCheck.checked : false;
   vscode.postMessage({ command: 'runQualityAnalysis', path, mode, fullDirectory });
 });
 const qExportBtn = document.getElementById('qExportBtn');
@@ -5016,7 +5016,7 @@ if (scanStartBtn) scanStartBtn.addEventListener('click', () => {
   if (pw) pw.classList.add('active');
   const path = scanPathInput ? scanPathInput.value : '';
   const mode = scanModeSelect ? scanModeSelect.value : 'full';
-  const fullDirectory = scanFullTreeCheck ? scanFullTreeCheck.checked : true;
+  const fullDirectory = scanFullTreeCheck ? scanFullTreeCheck.checked : false;
   vscode.postMessage({ command: 'scan', path, mode, fullDirectory });
 });
 const scExportBtn = document.getElementById('scExportBtn');

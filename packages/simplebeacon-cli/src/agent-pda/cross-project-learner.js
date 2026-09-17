@@ -583,7 +583,7 @@ function generateReport(analysis) {
     "4. **PDA adoption** — projects without PDA state get MCP config and init",
   );
   lines.push(
-    "5. **Agent guidance** — patterns become part of the agent briefing in supercharge_agent",
+    "5. **Agent guidance** — patterns become part of the agent briefing",
   );
   lines.push("");
   lines.push(

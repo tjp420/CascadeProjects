@@ -38,6 +38,8 @@ const ALL_COMMANDS = [
   'simplebeacon.openPreview',
   'simplebeacon.openAiContext',
   'simplebeacon.sendToAi',
+  'simplebeacon.optimizeForGpt5Mini',
+  'simplebeacon.generateAIContext',
   'simplebeacon.refreshDashboard',
   'simplebeacon.setMonitorDirectory',
   'simplebeacon.diagnoseSidebar',

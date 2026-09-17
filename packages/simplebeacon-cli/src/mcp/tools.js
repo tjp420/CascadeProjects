@@ -21,7 +21,7 @@ function formatToolResult(payload) {
     content: [
       {
         type: "text",
-        text: JSON.stringify(payload, null, 2),
+        text: JSON.stringify(payload),
       },
     ],
   };
@@ -121,24 +121,45 @@ function createMcpToolHandlers(options = {}) {
   };
 }
 
+const SLIM_TOOL_NAMES = [
+  "scan_file",
+  "scan_snippet",
+  "gate_status",
+  "explain_finding",
+  "simplebeacon_workspace_context",
+];
+
+function resolveMcpToolProfile(options = {}) {
+  if (options.fullTools === true || options.toolProfile === "full") {
+    return "full";
+  }
+  if (options.toolProfile === "slim") {
+    return "slim";
+  }
+  const env = String(process.env.SIMPLEBEACON_MCP_PROFILE || "").toLowerCase();
+  if (env === "full" || env === "all") return "full";
+  const argv = Array.isArray(options.argv) ? options.argv : process.argv;
+  if (argv.includes("--full-tools")) return "full";
+  return "slim";
+}
+
+function listToolDefinitions(options = {}) {
+  const profile = resolveMcpToolProfile(options);
+  if (profile === "full") return TOOL_DEFINITIONS;
+  const allowed = new Set(SLIM_TOOL_NAMES);
+  return TOOL_DEFINITIONS.filter((tool) => allowed.has(tool.name));
+}
+
 const TOOL_DEFINITIONS = [
   {
     name: "scan_snippet",
-    description:
-      "Scan a code snippet or pasted content for AI-fiction KPIs, mock-path leaks, credential patterns, and LLM placeholder slop. Runs locally — no upload.",
+    description: "Unpublished paste only. Same result shape as scan_file. Not for saved files.",
     inputSchema: {
       type: "object",
       properties: {
-        content: { type: "string", description: "Source text to scan" },
-        filePath: {
-          type: "string",
-          description: "Virtual filename for context (e.g. src/api/handler.ts)",
-        },
-        projectRoot: {
-          type: "string",
-          description:
-            "Project root for baseline.json (default: cwd or SIMPLEBEACON_PROJECT_ROOT)",
-        },
+        content: { type: "string" },
+        filePath: { type: "string" },
+        projectRoot: { type: "string" },
       },
       required: ["content"],
     },
@@ -146,26 +167,56 @@ const TOOL_DEFINITIONS = [
   {
     name: "scan_file",
     description:
-      "Scan one file on disk within the project root using the same rules as scan_snippet. Runs locally — no upload.",
+      "One saved JS/TS/Python/env/YAML/JSON file. Skip Doom/binaries. Result: findings[{file,line,rule,severity,fix}], next.",
     inputSchema: {
       type: "object",
       properties: {
-        filePath: {
-          type: "string",
-          description: "Relative or absolute path within project",
-        },
-        projectRoot: {
-          type: "string",
-          description: "Project root (default: cwd)",
-        },
+        filePath: { type: "string" },
+        projectRoot: { type: "string" },
       },
       required: ["filePath"],
     },
   },
   {
+    name: "simplebeacon_workspace_context",
+    description:
+      "Workspace preflight. JSON facts only: whether requested files/symbols exist, relative imports, unresolved imports, evidence, and blockers. Does not scan rules, upload source, or advise. Use before editing when the agent would otherwise guess files or function names.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectRoot: { type: "string" },
+        files: {
+          type: "array",
+          items: { type: "string" },
+          description: "Workspace-relative files the agent intends to use.",
+        },
+        requestedFile: {
+          type: "string",
+          description: "Single file to verify (alias for files[0]).",
+        },
+        symbols: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              file: { type: "string" },
+              symbol: { type: "string" },
+            },
+          },
+          description: "Functions/classes to verify in named files.",
+        },
+        verifySymbol: { type: "string" },
+        verifySymbols: {
+          type: "array",
+          items: { type: "string" },
+        },
+      },
+    },
+  },
+  {
     name: "scan_project",
     description:
-      "Run a full project scan (gate or complete) on the local filesystem. Supports custom config, profile override, and complete scan mode. Returns gate pass, quality score, top issues, and file count. No code is uploaded.",
+      "Full project scan. Do not use mid-edit. Prefer CLI: npx simplebeacon scan --gate --offline. Hidden from the default Cursor tool list.",
     inputSchema: {
       type: "object",
       properties: {
@@ -207,20 +258,13 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "gate_status",
-    description:
-      "Read latest .simplebeacon/report.json gate pass/fail and top blocking issues from a prior full scan.",
+    description: "Read .simplebeacon/report.json. Same finding rows as scan_file. No rescan.",
     inputSchema: {
       type: "object",
       properties: {
         projectRoot: { type: "string" },
-        reportPath: {
-          type: "string",
-          description: "Override report path relative to project root",
-        },
-        limit: {
-          type: "number",
-          description: "Max blocking issues to return (default 12)",
-        },
+        reportPath: { type: "string" },
+        limit: { type: "number" },
       },
     },
   },
@@ -267,19 +311,13 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "explain_finding",
-    description:
-      "Explain a pattern ID from scan results — deterministic rule metadata, not LLM inference.",
+    description: "Rule metadata for a pattern id. Not LLM inference.",
     inputSchema: {
       type: "object",
       properties: {
-        patternId: {
-          type: "string",
-          description: "Pattern or rule id from scan_snippet/scan_file",
-        },
-        type: {
-          type: "string",
-          description: "Optional finding type for fallback lookup",
-        },
+        patternId: { type: "string" },
+        type: { type: "string" },
+        projectRoot: { type: "string" },
       },
       required: ["patternId"],
     },
@@ -445,6 +483,9 @@ const TOOL_DEFINITIONS = [
 module.exports = {
   createMcpToolHandlers,
   TOOL_DEFINITIONS,
+  SLIM_TOOL_NAMES,
+  resolveMcpToolProfile,
+  listToolDefinitions,
   formatToolResult,
   formatMarkdownResult,
 };

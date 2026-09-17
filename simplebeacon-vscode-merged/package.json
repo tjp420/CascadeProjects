@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/tjp420/CascadeProjects.git"
   },
-  "version": "3.0.588",
+  "version": "3.0.589",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -91,6 +91,18 @@
         "title": "Send Scan to AI Agent",
         "category": "SimpleBeacon",
         "icon": "$(robot)"
+      },
+      {
+        "command": "simplebeacon.optimizeForGpt5Mini",
+        "title": "Copy Optimized Editor Context for AI",
+        "category": "SimpleBeacon",
+        "icon": "$(symbol-namespace)"
+      },
+      {
+        "command": "simplebeacon.generateAIContext",
+        "title": "Generate AI Context",
+        "category": "SimpleBeacon",
+        "icon": "$(file-code)"
       }
     ],
     "views": {
@@ -621,7 +633,37 @@
           "description": "Send anonymized team scan summaries to SimpleBeacon (paid/team tiers only). Never sends source code or file paths."
         }
       }
-    }
+    },
+    "languageModelTools": [
+      {
+        "name": "simplebeacon_workspace_context",
+        "tags": ["workspace", "simplebeacon"],
+        "toolReferenceName": "simplebeacon",
+        "displayName": "SimpleBeacon Workspace Context",
+        "modelDescription": "Workspace verification. Returns small JSON facts from disk: whether a requested file exists, whether named functions exist in that file, that file's import specifiers, and relevant local files (the file plus resolved relative imports). Use before inventing files, symbols, or dependencies. Does not upload source. Not a chatbot and not a security verdict.",
+        "userDescription": "Ask SimpleBeacon whether files and symbols exist, what a file imports, and which local files are relevant.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(shield)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "requestedFile": {
+              "type": "string",
+              "description": "Absolute path of the file to inspect. Defaults to the active editor."
+            },
+            "verifySymbol": {
+              "type": "string",
+              "description": "Function name to verify in that file. Result is verification[].status found or not_found."
+            },
+            "verifySymbols": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Additional function names to verify in that file."
+            }
+          }
+        }
+      }
+    ]
   },
   "scripts": {
     "build": "npm run compile",
@@ -638,7 +680,7 @@
     "verify:scan": "node ../scripts/verify-scan.js",
     "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix",
     "sync:dashboard-web": "node scripts/sync-dashboard-web.cjs",
-    "package:vsix": "npm run compile && npx @vscode/vsce package --no-dependencies --out simplebeacon-3.0.588.vsix",
+    "package:vsix": "npm run compile && npx @vscode/vsce package --no-dependencies --out simplebeacon-3.0.589.vsix",
     "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs",
     "arch": "depcruise src --config .dependency-cruiser.js",
     "arch:validate": "depcruise src --config .dependency-cruiser.js --output-type err",

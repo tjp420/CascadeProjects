@@ -21,6 +21,7 @@ export interface AgentStatus {
 
 export interface AgentScanOptions {
   projectPath: string;
+  /** Opt-in full-tree walk. Omit or false = CLI-scoped productionPaths. */
   fullDirectory?: boolean;
   tier?: string;
   maxFiles?: number;
@@ -263,12 +264,17 @@ export async function scanViaLocalAgent(options: AgentScanOptions, port?: number
   const agentPort = port ?? getAgentPort();
   const projectPath = options.projectPath;
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({
-      projectPath,
-      fullDirectoryScan: Boolean(options.fullDirectory),
-      ...(options.tier ? { tier: options.tier } : {}),
-      ...(typeof options.maxFiles === 'number' ? { maxFiles: options.maxFiles } : {}),
-    });
+    const body: Record<string, unknown> = { projectPath };
+    if (options.fullDirectory === true) {
+      body.fullDirectoryScan = true;
+    }
+    if (options.tier) {
+      body.tier = options.tier;
+    }
+    if (typeof options.maxFiles === 'number') {
+      body.maxFiles = options.maxFiles;
+    }
+    const payload = JSON.stringify(body);
     const req = http.request(
       {
         hostname: '127.0.0.1',

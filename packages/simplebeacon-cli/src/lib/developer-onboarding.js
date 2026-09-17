@@ -96,14 +96,30 @@ function detectCiPlatform(projectRoot) {
 }
 
 function installCursorRule(projectRoot, options = {}) {
-  const target = path.join(
+  const rulesDir = path.join(
     path.resolve(projectRoot),
     ".cursor",
     "rules",
-    "simplebeacon-scan-workflow.mdc",
   );
-  const content = fs.readFileSync(CURSOR_RULE_TEMPLATE, "utf8");
-  return writeIfAbsentOrForce(target, content, options);
+  const names = [
+    "simplebeacon-scan-workflow.mdc",
+    "simplebeacon-scannable-types.mdc",
+  ];
+  const files = names.map((name) => {
+    const target = path.join(rulesDir, name);
+    const content = fs.readFileSync(
+      path.join(PACKAGE_ROOT, "examples", "cursor", name),
+      "utf8",
+    );
+    return writeIfAbsentOrForce(target, content, options);
+  });
+  return {
+    created: files.some((f) => f.created),
+    skipped: files.every((f) => f.skipped),
+    dryRun: files.some((f) => f.dryRun),
+    path: files[0] && files[0].path,
+    files,
+  };
 }
 
 /**
@@ -137,7 +153,10 @@ function installVscodeCopilotInstructions(projectRoot, options = {}) {
   const targetPath = path.join(githubDir, "copilot-instructions.md");
   const force = Boolean(options.force);
   const dryRun = Boolean(options.dryRun);
-  const content = `# SimpleBeacon Scan Workflow\n\nThis repository includes a SimpleBeacon Scan Workflow that integrates with the scan_snippet tool.\n\nUse scan_snippet to scan code samples before applying them.\n`;
+  const content = `# SimpleBeacon Scan Workflow
+
+Scan saved JS/TS/Python/env/YAML/JSON with scan_file once after save. Skip Doom assets, meshes, textures, and binaries. Do not scan_snippet when the file is already on disk. Before PR: npx simplebeacon scan --gate --offline, then gate_status. Do not call missing MCP tools.
+`;
 
   if (fs.existsSync(targetPath) && !force) {
     return { skipped: true, path: targetPath };

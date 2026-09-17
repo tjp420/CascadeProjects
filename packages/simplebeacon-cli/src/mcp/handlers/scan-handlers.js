@@ -6,6 +6,12 @@ const {
   scanSnippetContent,
   scanFileOnDisk,
 } = require("../../lib/snippet-scanner");
+const {
+  evaluateScannablePath,
+  skippedScanResult,
+  slimScanResult,
+  slimScanFindings,
+} = require("../../lib/scannable-path");
 
 function createScanHandlers({
   withGuard,
@@ -24,15 +30,16 @@ function createScanHandlers({
       ) {
         throw new Error("Missing required argument: content");
       }
+      const filePath = args.filePath || "snippet.txt";
+      const skipGate = evaluateScannablePath(filePath);
+      if (!skipGate.scannable) {
+        return formatToolResult(slimScanResult(skippedScanResult(filePath)));
+      }
       const result = scanSnippetContent(String(args.content || ""), {
-        filePath: args.filePath || "snippet.txt",
+        filePath,
         projectRoot: resolveProjectRoot(args.projectRoot),
       });
-      return formatToolResult({
-        ...result,
-        localOnly: true,
-        methodology: "Deterministic regex — not LLM semantic review",
-      });
+      return formatToolResult(slimScanResult(result));
     }),
 
     scan_file: withGuard((args) => {
@@ -51,9 +58,14 @@ function createScanHandlers({
           resolveProjectRoot(projectRoot),
           filePath,
         );
-        return formatToolResult({ ...result, localOnly: true });
+        return formatToolResult(slimScanResult(result));
       } catch (err) {
-        return formatToolResult({ error: err.message, filePath });
+        return formatToolResult(
+          slimScanResult({
+            error: err.message,
+            filePath,
+          }),
+        );
       }
     }),
 
@@ -87,77 +99,63 @@ function createScanHandlers({
           offline: true,
         });
         cacheReport(root, report);
-        const detectedIssues = (report.detectedIssues || []).map((i) => ({
-          severity: i.severity || "low",
-          type: i.type || "unknown",
-          count: i.count || 1,
-          filePath:
-            Array.isArray(i.filePaths) && i.filePaths.length
-              ? i.filePaths.slice(0, 5).join(", ")
-              : Array.isArray(i.affectedFiles) && i.affectedFiles.length
-                ? i.affectedFiles.slice(0, 5).join(", ")
-                : i.filePath || "",
-          rule: i.pattern || i.rule || "UNKNOWN",
-          impact: i.description || i.impact || "Review required.",
-          fix:
-            i.recommendedAction ||
-            i.recommendation ||
-            i.fix ||
-            "Manual review required.",
-        }));
-        const gateBlocking = (report.gate?.blockingIssues || []).map((i) => ({
-          severity: i.severity || "medium",
-          type: i.type || "Blocking Finding",
-          count: i.count || 1,
-          filePath:
-            Array.isArray(i.filePaths) && i.filePaths.length
-              ? i.filePaths.slice(0, 5).join(", ")
-              : Array.isArray(i.affectedFiles) && i.affectedFiles.length
-                ? i.affectedFiles.slice(0, 5).join(", ")
-                : i.filePath || "",
-          rule: i.pattern || i.rule || "UNKNOWN",
-          impact: i.description || i.impact || "Review required.",
-          fix:
-            i.recommendedAction ||
-            i.recommendation ||
-            i.fix ||
-            "Manual review required.",
-        }));
-        const normalizedTier = String(report.tier || "developer").toLowerCase();
-        const isFree =
-          normalizedTier === "developer" || normalizedTier === "free";
+        const detectedIssues = slimScanFindings(
+          (report.detectedIssues || []).map((i) => ({
+            file:
+              (Array.isArray(i.filePaths) && i.filePaths[0]) ||
+              (Array.isArray(i.affectedFiles) && i.affectedFiles[0]) ||
+              i.filePath ||
+              "",
+            line: i.line ?? null,
+            rule: i.pattern || i.rule || "unknown",
+            severity: i.severity || "low",
+            fix:
+              i.recommendedAction ||
+              i.recommendation ||
+              i.fix ||
+              i.description ||
+              "",
+          })),
+          8,
+        );
+        const gateBlocking = slimScanFindings(
+          (report.gate?.blockingIssues || []).map((i) => ({
+            file:
+              (Array.isArray(i.filePaths) && i.filePaths[0]) ||
+              (Array.isArray(i.affectedFiles) && i.affectedFiles[0]) ||
+              i.filePath ||
+              "",
+            line: i.line ?? null,
+            rule: i.pattern || i.rule || "unknown",
+            severity: i.severity || "medium",
+            fix:
+              i.recommendedAction ||
+              i.recommendation ||
+              i.fix ||
+              i.description ||
+              "",
+          })),
+          8,
+        );
         const payload = {
-          type: "simplebeacon-report",
-          version: "1.3.0",
-          generatedAt: report.generatedAt || new Date().toISOString(),
-          projectRoot: report.projectRoot || root,
+          ok: true,
+          skipped: false,
+          cached: false,
+          reason: null,
+          gatePass: report.gate?.pass ?? null,
+          blockingCount: report.gate?.blockingCount ?? 0,
+          warningCount: report.gate?.warningCount ?? 0,
+          findingCount: report.issueCount ?? detectedIssues.length,
+          findings: detectedIssues,
           gate: {
             pass: report.gate?.pass ?? null,
             blockingCount: report.gate?.blockingCount ?? 0,
             warningCount: report.gate?.warningCount ?? 0,
-            blockingFindings: gateBlocking,
+            findings: gateBlocking,
           },
-          qualityScore: report.qualityScore ?? 0,
-          totalFiles: report.totalFiles ?? 0,
-          issueCount: report.issueCount ?? 0,
-          detectedIssues: detectedIssues.slice(0, 12),
-          summary: {
-            gatePass: report.gate?.pass ?? null,
-            qualityScore: report.qualityScore ?? 0,
-          },
-          localOnly: true,
-          methodology: "Deterministic regex + AST scan — no code uploaded",
-          tier: normalizedTier,
-          ...(isFree
-            ? {
-                upsell:
-                  "Upgrade to Pro ($9/mo) to unlock all 48 analyzers, exportable reports, and team tools — https://simplebeacon.ai/pricing",
-              }
-            : {}),
+          next:
+            report.gate?.blockingCount > 0 ? "fix_then_rescan_once" : "done",
         };
-        if (args.format === "json") {
-          return formatToolResult(payload);
-        }
         return formatToolResult(payload);
       } catch (err) {
         return formatToolResult({ error: err.message, projectRoot: root });

@@ -23,7 +23,7 @@ import {
 // Vite base `/dashboard/` rewrites `new URL('../workers/scan-worker.js', import.meta.url)`
 // to `/dashboard/scan-worker.js`, which Pages SPA-falls-back as text/html. Resolve at
 // runtime under the active mount so /app and /dashboard both hit assets/scan-worker.js.
-const WORKER_ASSET_VERSION = "20260828workerfix1";
+const WORKER_ASSET_VERSION = "20260915workerfix2";
 function resolveScanWorkerUrl() {
   const v = WORKER_ASSET_VERSION;
   try {
@@ -74,7 +74,7 @@ function resolveScanWorkerUrl() {
 // Offline persistence: After a successful prefetch, the inlined script is stored in
 // the Cache API. When the user is offline (or DNS fails), we read from cache so the
 // scan worker can still be created without any network request.
-const WORKER_CACHE_NAME = "simplebeacon-scan-worker-v1";
+const WORKER_CACHE_NAME = "simplebeacon-scan-worker-v2";
 let _cachedWorkerScript = null; // fully inlined, self-contained script
 let _prefetchPromise = null;
 
@@ -133,7 +133,7 @@ function prefetchWorkerScript() {
 
       // Fetch the worker script and all its imports in parallel
       const bridgeUrl = new URL("./scan-wasm-bridge.js", workerBaseUrl);
-      const ignoreLibUrl = new URL("../utils-lib/simplebeaconignore.browser.js", workerBaseUrl);
+      const ignoreLibUrl = new URL("./simplebeaconignore.browser.js", workerBaseUrl);
 
       console.warn("[localScan] Prefetching worker + imports...");
       const [workerText, bridgeText, ignoreLibText] = await Promise.all([
@@ -151,6 +151,7 @@ function prefetchWorkerScript() {
       // Rewrite the worker script's imports to use blob URLs
       let inlinedScript = workerText
         .replace(/from\s+["']\.\/scan-wasm-bridge\.js(\?[^"']*)?["']/g, `from "${bridgeBlobUrl}"`)
+        .replace(/from\s+["']\.\/simplebeaconignore\.browser\.js(\?[^"']*)?["']/g, `from "${ignoreLibBlobUrl}"`)
         .replace(/from\s+["']\.\.\/utils-lib\/simplebeaconignore\.browser\.js(\?[^"']*)?["']/g, `from "${ignoreLibBlobUrl}"`);
 
       // Also rewrite any other relative imports to absolute URLs as a safety net

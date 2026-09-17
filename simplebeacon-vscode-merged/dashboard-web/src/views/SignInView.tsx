@@ -21,6 +21,7 @@ import {
 import { navigate } from "@/router/HashRouter";
 import { toast } from "sonner";
 import { apiUrl, waitForApiBase, setAuthToken, setLicenseToken } from "@/config";
+import { completeIdeAuthRelay } from "@/lib/ide-auth-relay";
 
 type SsoProvider = {
   found: boolean;
@@ -56,6 +57,7 @@ export function SignInView() {
       } catch {
         /* ignore */
       }
+      completeIdeAuthRelay(ssoToken);
       toast.success("SSO authentication successful");
       // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
@@ -194,6 +196,7 @@ export function SignInView() {
         } catch {
           /* ignore */
         }
+        completeIdeAuthRelay(data.token, data.user || null);
         toast.success(mode === "signin" ? "Signed in" : "Account created");
         let nextView = "dashboard";
         try {

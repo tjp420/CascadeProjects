@@ -175,3 +175,139 @@ export function collectScanIssues(root: unknown, max = 200): AuditIssue[] {
   // Prefer high-signal severities before applying the hard cap.
   return selectIssuesForBrowserStorage(out, max);
 }
+
+const ACTION_CAP = 50;
+
+function hasCompletedScanSignal(scan: any): boolean {
+  if (!scan || typeof scan !== "object") return false;
+  const counts = scan.severityCounts || {};
+  const countSum =
+    Number(counts.critical || 0) +
+    Number(counts.high || 0) +
+    Number(counts.medium || 0) +
+    Number(counts.low || 0) +
+    Number(counts.info || 0);
+  return (
+    Array.isArray(scan.detectedIssues) ||
+    Array.isArray(scan.rawIssues) ||
+    Array.isArray(scan.findings) ||
+    Number(scan.issueCount) > 0 ||
+    countSum > 0 ||
+    typeof scan.gate?.pass === "boolean"
+  );
+}
+
+/**
+ * Build the Remediation view model from a client-side scan snapshot.
+ * Hosted dashboards cannot POST a local filesystem path to /analyze/flexible.
+ */
+export function buildRoadmapFromScan(scan: unknown): Record<string, unknown> | null {
+  if (!hasCompletedScanSignal(scan)) return null;
+  const root = scan as any;
+  const issues = collectScanIssues(root, 200);
+  const fromIssues = countIssuesBySeverity(issues);
+  const sc = root.severityCounts || {};
+  const counts = {
+    critical: Number(sc.critical) || fromIssues.critical,
+    high: Number(sc.high) || fromIssues.high,
+    medium: Number(sc.medium) || fromIssues.medium,
+    low: Number(sc.low) || fromIssues.low,
+    info: Number(sc.info) || fromIssues.info,
+  };
+  const issueCount = Number(root.issueCount) || issues.length;
+  const blocking = counts.critical + counts.high;
+  const gatePass = root.gate?.pass === true;
+  const projectName = String(
+    root.projectName || root.projectRoot || root.projectPath || "local scan",
+  );
+  const truncated =
+    Boolean(root.issuesTruncated) ||
+    issueCount > issues.length ||
+    Boolean(root.scanLimitNote);
+
+  const actionPlan = issues.slice(0, ACTION_CAP).map((issue) => ({
+    priority: issue.severity,
+    action: issue.type,
+    category: issue.filePath,
+    description:
+      issue.line !== "—"
+        ? `${issue.description} (line ${issue.line})`
+        : issue.description,
+  }));
+
+  const risks = issues
+    .filter((issue) => issue.severity === "critical" || issue.severity === "high")
+    .slice(0, 25)
+    .map((issue) => ({
+      category: issue.type,
+      severity: issue.severity,
+      description: `${issue.filePath}: ${issue.description}`,
+    }));
+
+  const seenRec = new Set<string>();
+  const recommendations: Array<{
+    priority: string;
+    action: string;
+    description: string;
+    effort?: string;
+  }> = [];
+  for (const issue of issues) {
+    if (issue.severity !== "critical" && issue.severity !== "high") continue;
+    const key = `${issue.severity}|${issue.type}`;
+    if (seenRec.has(key)) continue;
+    seenRec.add(key);
+    recommendations.push({
+      priority: issue.severity,
+      action: issue.type,
+      description: issue.description,
+      effort: "cli",
+    });
+    if (recommendations.length >= 15) break;
+  }
+
+  const phaseFor = (
+    name: string,
+    n: number,
+    blockedStatus: string,
+  ) => ({
+    phase: name,
+    status: n > 0 ? blockedStatus : "complete",
+    items: [`${n} ${name.toLowerCase()} findings in this scan`],
+  });
+
+  return {
+    type: "scan-derived-roadmap",
+    generatedAt: String(root.generatedAt || new Date().toISOString()),
+    projectName,
+    sourceProjectPath: String(root.projectRoot || root.projectPath || ""),
+    executiveSummary: {
+      totalFeatures: issueCount,
+      completedFeatures: 0,
+      inProgressFeatures: 0,
+      plannedFeatures: issueCount,
+      completionRate: gatePass && blocking === 0 ? 100 : 0,
+      projectHealth: blocking > 0 ? "Blocked" : issueCount > 0 ? "In Progress" : "Healthy",
+      notes: truncated
+        ? String(
+            root.scanLimitNote ||
+              `Action list capped at ${ACTION_CAP} rows for the browser. Export JSON or use the shipping-path CLI for the full finding list.`,
+          )
+        : undefined,
+      lastUpdated: root.generatedAt,
+    },
+    developmentPhases: [
+      phaseFor("Critical", counts.critical, "blocked"),
+      phaseFor("High", counts.high, "blocked"),
+      phaseFor("Medium", counts.medium, "planned"),
+      phaseFor("Low", counts.low, "planned"),
+    ],
+    risks,
+    actionPlan,
+    recommendations,
+    progressMetrics: {
+      completionRate: gatePass && blocking === 0 ? 100 : 0,
+      totalFeatures: issueCount,
+      completedFeatures: 0,
+    },
+  };
+}

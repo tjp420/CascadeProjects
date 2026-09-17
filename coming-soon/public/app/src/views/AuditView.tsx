@@ -37,6 +37,8 @@ import { navigate } from "@/router/HashRouter";
 import { useAuth } from "@/hooks/useAuth";
 import { resolveScanLetterGrade } from "@/lib/gradeFromScore";
 import { getLargeItem } from "@/utils/dbStorage";
+import { collectScanIssues } from "@/lib/collect-scan-issues";
+import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -246,7 +248,7 @@ function isSimplebeaconReport(data: any): boolean {
 
 /** Derive audit layers from a raw scan report (mirrors JS buildAuditFromReport). */
 function deriveAuditLayers(report: FullReport): AuditLayers {
-  const rawIssues = report.rawIssues || report.detectedIssues || [];
+  const rawIssues = collectScanIssues(report, 500) as any[];
   const gate = report.gate || { pass: true, blockingCount: 0, warningCount: 0 };
   const issueCount = report.issueCount || rawIssues.length;
 
@@ -1716,6 +1718,8 @@ export function AuditView() {
           )}
         </p>
       </div>
+
+      <EvidenceStatePanel report={displayReport} />
 
       {/* Top metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

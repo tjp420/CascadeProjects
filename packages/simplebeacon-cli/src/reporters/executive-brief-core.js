@@ -300,3 +300,4 @@ module.exports = {
   selectExecutiveSourceFindings,
   buildExecutiveBriefModel,
 };
+module.exports.default = module.exports;

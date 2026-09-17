@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildExecutiveCheckoutBody,
+  buildExecutiveCertificateSvg,
   isValidCheckoutEmail,
+  parseCheckoutReturnParams,
   remainingLockedRows,
 } from "./executive-checkout.ts";
 
@@ -36,5 +38,36 @@ describe("isValidCheckoutEmail", () => {
     assert.equal(isValidCheckoutEmail(""), false);
     assert.equal(isValidCheckoutEmail("not-an-email"), false);
     assert.equal(isValidCheckoutEmail("buyer@example.com"), true);
+  });
+});
+
+describe("parseCheckoutReturnParams", () => {
+  it("reads session_id from search or hash", () => {
+    assert.equal(
+      parseCheckoutReturnParams("?session_id=cs_test_123", "#/results")
+        .sessionId,
+      "cs_test_123",
+    );
+    assert.equal(
+      parseCheckoutReturnParams("", "#/results?session_id=cs_hash&checkout=success")
+        .sessionId,
+      "cs_hash",
+    );
+    assert.equal(
+      parseCheckoutReturnParams("?checkout=success", "").checkoutSuccess,
+      true,
+    );
+  });
+});
+
+describe("buildExecutiveCertificateSvg", () => {
+  it("embeds project name and avoids attestation language", () => {
+    const svg = buildExecutiveCertificateSvg({
+      projectName: "CascadeProjects",
+      issuedAt: "2026-09-16",
+    });
+    assert.match(svg, /CascadeProjects/);
+    assert.match(svg, /Executive Risk Certificate/);
+    assert.match(svg, /Not a security attestation/);
   });
 });

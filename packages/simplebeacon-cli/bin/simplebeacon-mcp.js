@@ -18,11 +18,12 @@ const offline =
   process.argv.includes("--offline") ||
   process.env.SIMPLEBEACON_OFFLINE === "1" ||
   process.env.SIMPLEBEACON_OFFLINE === "true";
+const fullTools = process.argv.includes("--full-tools");
 
 function runSmokeTest() {
   const projectRoot = process.env.SIMPLEBEACON_PROJECT_ROOT || process.cwd();
   const handlers = createMcpToolHandlers({ offline: true });
-  const server = createMcpStdioServer({ offline: true });
+  const server = createMcpStdioServer({ offline: true, fullTools });
   const tools = server.toolListResult().tools.map((t) => t.name);
 
   process.stderr.write(`Simplebeacon MCP smoke test\n`);
@@ -66,6 +67,6 @@ function runSmokeTest() {
 if (process.argv.includes("--smoke-test")) {
   runSmokeTest();
 } else {
-  const server = createMcpStdioServer({ offline });
+  const server = createMcpStdioServer({ offline, fullTools });
   server.start();
 }

@@ -40,6 +40,7 @@ function buildCursorMcpJson(options = {}) {
         env: {
           SIMPLEBEACON_PROJECT_ROOT: "${workspaceFolder}",
           SIMPLEBEACON_OFFLINE: "1",
+          SIMPLEBEACON_MCP_PROFILE: "slim",
         },
       },
     },
@@ -56,6 +57,7 @@ function buildClaudeDesktopMcpJson(options = {}) {
         env: {
           SIMPLEBEACON_PROJECT_ROOT: "${workspaceFolder}",
           SIMPLEBEACON_OFFLINE: "1",
+          SIMPLEBEACON_MCP_PROFILE: "slim",
         },
       },
     },

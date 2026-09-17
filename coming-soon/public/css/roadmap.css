@@ -1602,6 +1602,16 @@ body {
     color: var(--text-dim);
     font-size: 0.85rem;
 }
+.issue-display-cap-notice {
+    margin-top: 12px;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--text-dim);
+    border: 1px solid var(--border, #1e293b);
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.08);
+}
 @media (max-width: 700px) {
     .hero h1 {
         font-size: clamp(1.25rem, 5vw, 1.5rem);

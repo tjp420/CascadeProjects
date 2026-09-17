@@ -20,7 +20,14 @@ function run() {
       registerTool: function(name, tool) { global._sb_registered = { name, tool }; return { registered: true }; }
     };
     exports.window = {
-      activeTextEditor: { document: { uri: { fsPath: '/repo/file.js' }, languageId: 'javascript', lineCount: 42 } }
+      activeTextEditor: {
+        document: {
+          uri: { fsPath: '/repo/file.js' },
+          languageId: 'javascript',
+          lineCount: 42,
+          getText: function () { return 'function login() { return true; }\\n'; },
+        },
+      },
     };
   `;
   fs.writeFileSync(path.join(mockDir, 'index.js'), mockIndex, 'utf8');
@@ -78,7 +85,12 @@ function run() {
     process.exit(1);
   }
 
-  const parsed = JSON.parse(out.stdout.trim());
+  const jsonLine = out.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .reverse()
+    .find((line) => line.startsWith("{"));
+  const parsed = JSON.parse(jsonLine || out.stdout.trim());
   if (!parsed || !Array.isArray(parsed.parts) || parsed.parts.length === 0) {
     console.error('Invalid output from tool:', out.stdout);
     process.exit(1);

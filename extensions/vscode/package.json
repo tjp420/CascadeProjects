@@ -1,0 +1,55 @@
+{
+  "name": "simplebeacon-vscode-local",
+  "displayName": "SimpleBeacon (local)",
+  "description": "Local-only SimpleBeacon helper: generate AI context briefs from the active editor.",
+  "version": "3.0.589",
+  "publisher": "simplebeacon",
+  "engines": { "vscode": "^1.80.0" },
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:simplebeacon.generateAIContext"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "simplebeacon.generateAIContext",
+        "title": "SimpleBeacon: Generate AI Context Brief",
+        "category": "SimpleBeacon"
+      }
+    ]
+    ,
+    "languageModelTools": [
+      {
+        "name": "simplebeacon_workspace_context",
+        "tags": ["workspace", "simplebeacon"],
+        "toolReferenceName": "simplebeacon",
+        "displayName": "SimpleBeacon Workspace Context",
+        "modelDescription": "Workspace verification. Returns small JSON facts from disk: whether a requested file exists, whether named functions exist in that file, that file's import specifiers, and relevant local files (the file plus resolved relative imports). Use before inventing files, symbols, or dependencies. Does not upload source. Not a chatbot and not a security verdict.",
+        "userDescription": "Ask SimpleBeacon whether files and symbols exist, what a file imports, and which local files are relevant.",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "requestedFile": {
+              "type": "string",
+              "description": "Absolute path of the file to inspect. Defaults to the active editor."
+            },
+            "verifySymbol": {
+              "type": "string",
+              "description": "Function name to verify in that file. Result is verification[].status found or not_found."
+            },
+            "verifySymbols": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Additional function names to verify in that file."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node --test ./test/ai-context.test.js"
+  }
+}

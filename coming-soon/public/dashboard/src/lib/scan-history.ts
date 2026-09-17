@@ -38,7 +38,19 @@ export function mapSnapshotToHistoryRow(
   const root = asRecord(snapshot);
   if (!root) return null;
   const gate = asRecord(root.gate);
-  const headline = resolveEvidenceState(root).headline;
+  const headline = (() => {
+    try {
+      return resolveEvidenceState(root).headline;
+    } catch {
+      return {
+        signalsAnalyzed: 0,
+        automaticallyDismissed: 0,
+        requireReview: 0,
+        verifiedVulnerabilities: 0,
+        summary: "",
+      };
+    }
+  })();
   const projectName = String(
     root.projectName || root.projectRoot || root.projectPath || "",
   ).trim();
@@ -67,20 +79,27 @@ export function mapSnapshotToHistoryRow(
  * Uses simplebeacon-storage / large-items via getLargeItem("sb_last_scan_report").
  * Does not open a second database or create a history object store.
  */
+async function readSnapshotCandidates(): Promise<unknown[]> {
+  const out: unknown[] = [];
+  try {
+    const { getLargeItem } = await import("../utils/dbStorage.ts");
+    out.push(await getLargeItem(LAST_SCAN_REPORT_KEY));
+  } catch {
+    /* ignore */
+  }
+  out.push(parseLocalJson(LAST_SCAN_FULL_KEY));
+  out.push(parseLocalJson(LAST_SCAN_REPORT_KEY));
+  out.push(parseLocalJson(LAST_SCAN_SUMMARY_KEY));
+  return out.filter((item) => item != null);
+}
+
 export async function getLocalScanHistory(): Promise<LocalScanHistoryRow[]> {
   try {
-    let snapshot: unknown = null;
-    try {
-      const { getLargeItem } = await import("../utils/dbStorage.ts");
-      snapshot = await getLargeItem(LAST_SCAN_REPORT_KEY);
-    } catch {
-      snapshot = null;
+    for (const snapshot of await readSnapshotCandidates()) {
+      const row = mapSnapshotToHistoryRow(snapshot);
+      if (row) return [row];
     }
-    if (!snapshot) snapshot = parseLocalJson(LAST_SCAN_FULL_KEY);
-    if (!snapshot) snapshot = parseLocalJson(LAST_SCAN_REPORT_KEY);
-    if (!snapshot) snapshot = parseLocalJson(LAST_SCAN_SUMMARY_KEY);
-    const row = mapSnapshotToHistoryRow(snapshot);
-    return row ? [row] : [];
+    return [];
   } catch {
     return [];
   }
@@ -94,15 +113,8 @@ export const getHistory = getLocalScanHistory;
  */
 export async function getRawLastScan(): Promise<unknown | null> {
   try {
-    try {
-      const { getLargeItem } = await import("../utils/dbStorage.ts");
-      const large = await getLargeItem(LAST_SCAN_REPORT_KEY);
-      if (large) return large;
-    } catch {
-      // ignore and fallback to localStorage
-    }
-    const raw = parseLocalJson(LAST_SCAN_FULL_KEY) ?? parseLocalJson(LAST_SCAN_REPORT_KEY) ?? parseLocalJson(LAST_SCAN_SUMMARY_KEY);
-    return raw ?? null;
+    const candidates = await readSnapshotCandidates();
+    return candidates[0] ?? null;
   } catch {
     return null;
   }

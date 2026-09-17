@@ -164,10 +164,7 @@ async function fetchAttestation() {
 
   // Attestation is optional — the scan proceeds without it. Log at debug level
   // to avoid alarming users when the endpoint is unavailable or network fails.
-  console.debug(
-    "[scanAttest] Attestation unavailable (scan will proceed without it):",
-    lastError,
-  );
+  console.debug("[scanAttest] Attestation unavailable (scan will proceed without it):", lastError);
   return null;
 }
 
@@ -176,7 +173,10 @@ async function fetchAttestation() {
  */
 function scheduleRefresh(expiresAt) {
   if (refreshTimer) clearTimeout(refreshTimer);
-  const refreshIn = Math.max(1000, expiresAt - Date.now() - REFRESH_BUFFER_MS);
+  const refreshIn = Math.max(
+    1000,
+    expiresAt - Date.now() - REFRESH_BUFFER_MS,
+  );
   refreshTimer = setTimeout(async () => {
     console.warn("[scanAttest] Auto-refreshing attestation...");
     await fetchAttestation();
@@ -258,9 +258,7 @@ export function isAttestationValid(attestation) {
   try {
     const parts = attestation.split(".");
     if (parts.length !== 3) return false;
-    const payload = JSON.parse(
-      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
-    );
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
     if (!payload.exp) return false;
     if (Date.now() >= payload.exp * 1000) return false;
     if (payload.iss !== "simplebeacon-edge") return false;

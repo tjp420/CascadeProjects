@@ -192,6 +192,9 @@ export function loadRemediationModule(platformRoot: string): any;
 // ── MCP ──
 export function createMcpToolHandlers(): any;
 export const TOOL_DEFINITIONS: any;
+export const SLIM_TOOL_NAMES: string[];
+export function listToolDefinitions(options?: any): any[];
+export function resolveMcpToolProfile(options?: any): string;
 export function createMcpStdioServer(): any;
 export function scanSnippetContent(content: string, rules?: string[]): any;
 export function scanFileOnDisk(filePath: string, rules?: string[]): any;

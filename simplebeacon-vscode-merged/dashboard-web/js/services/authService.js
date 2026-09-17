@@ -258,19 +258,19 @@ export class AuthService {
     ) {
       notifyAuthState(true, tier, token, isAdmin);
     }
-    // If opened from the VS Code: "Sign In via Website" flow, redirect back to the extension.
-    if (typeof window !== "undefined" && window.parent === window) {
+    // If opened from VS Code or Cursor "Sign In" (redirect_uri=cursor:// or vscode:// …/relay/auth).
+    if (typeof window !== "undefined") {
       try {
         const redirectUri = new URLSearchParams(window.location.search).get(
           "redirect_uri",
         );
         if (
           redirectUri &&
-          redirectUri.startsWith(
-            "vscode://simplebeacon.simplebeacon-vscode/relay/auth",
+          /^(vscode|cursor|vscode-insiders|windsurf):\/\/simplebeacon\.simplebeacon-vscode\/relay\/auth/i.test(
+            redirectUri,
           )
         ) {
-          const finalUri = `${redirectUri}?token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
+          const finalUri = `${redirectUri}${redirectUri.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
           window.location.href = finalUri;
         }
       } catch (e) {

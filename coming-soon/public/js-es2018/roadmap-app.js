@@ -2558,12 +2558,12 @@ function renderDashboard(report, roadmap) {
     wireSearchFilter();
     updateSprintTracker();
     applyPhaseFilter(currentFilter || 'all');
-    // All Issues section: render every raw issue from the report
+    // All Issues section: scorecards use full counts; the DOM list is capped.
+    const ISSUE_DISPLAY_CAP = 250;
     const allIssuesListEl = document.getElementById('allIssuesList');
     const issueSeverityFiltersEl = document.getElementById('issueSeverityFilters');
     const issueSearchInput = document.getElementById('issueSearch');
     const issueSearchHitsEl = document.getElementById('issueSearchHits');
-    // allIssues already computed above for the scorecard
     const sevCounts = allIssues.reduce((acc, i) => {
         acc[i.sev] = (acc[i.sev] || 0) + 1;
         return acc;
@@ -2622,41 +2622,66 @@ function renderDashboard(report, roadmap) {
             if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing 0 of ' + allIssues.length + ' issues';
             return;
         }
+        const displayLimit = Math.min(ISSUE_DISPLAY_CAP, filtered.length);
         const sentinelId = 'issue-sentinel-' + Date.now();
         allIssuesListEl.textContent = '';
         const frag = document.createDocumentFragment();
-        filtered.slice(0, _issuesChunkSize).forEach(issue => {
+        filtered.slice(0, Math.min(_issuesChunkSize, displayLimit)).forEach(issue => {
             frag.appendChild(htmlToFragment(buildIssueHtml(issue)));
         });
         const sentinel = document.createElement('div');
         sentinel.id = sentinelId;
         sentinel.style.height = '1px';
-        frag.appendChild(sentinel);
+        if (displayLimit > _issuesChunkSize) frag.appendChild(sentinel);
+        if (filtered.length > ISSUE_DISPLAY_CAP) {
+            const notice = document.createElement('div');
+            notice.className = 'issue-display-cap-notice';
+            notice.setAttribute('role', 'status');
+            notice.textContent =
+                'Showing first ' +
+                ISSUE_DISPLAY_CAP +
+                ' of ' +
+                filtered.length +
+                ' findings. Gate status above is unchanged. Inspect the rest in the CLI or IDE.';
+            frag.appendChild(notice);
+        }
         allIssuesListEl.appendChild(frag);
         if (issueSearchHitsEl)
             issueSearchHitsEl.textContent =
-                'Showing ' + Math.min(_issuesChunkSize, filtered.length) + ' of ' + filtered.length + ' issues (lazy)';
-        if (filtered.length <= _issuesChunkSize) return;
+                'Showing ' +
+                Math.min(_issuesChunkSize, displayLimit) +
+                ' of ' +
+                filtered.length +
+                ' issues' +
+                (filtered.length > ISSUE_DISPLAY_CAP ? ' (list capped at ' + ISSUE_DISPLAY_CAP + ')' : '');
+        if (displayLimit <= _issuesChunkSize) return;
         let nextIdx = _issuesChunkSize;
         _issuesObserver = new IntersectionObserver(
             entries => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        const chunk = filtered.slice(nextIdx, nextIdx + _issuesChunkSize);
+                        const chunk = filtered.slice(nextIdx, Math.min(nextIdx + _issuesChunkSize, displayLimit));
                         if (chunk.length === 0) {
                             _issuesObserver.disconnect();
                             return;
                         }
-                        const frag = document.createDocumentFragment();
+                        const more = document.createDocumentFragment();
                         chunk.forEach(issue => {
-                            frag.appendChild(htmlToFragment(buildIssueHtml(issue)));
+                            more.appendChild(htmlToFragment(buildIssueHtml(issue)));
                         });
-                        allIssuesListEl.insertBefore(frag, entry.target);
-                        nextIdx += _issuesChunkSize;
+                        allIssuesListEl.insertBefore(more, entry.target);
+                        nextIdx += chunk.length;
                         if (issueSearchHitsEl)
                             issueSearchHitsEl.textContent =
-                                'Showing ' + Math.min(nextIdx, filtered.length) + ' of ' + filtered.length + ' issues';
-                        if (nextIdx >= filtered.length) {
+                                'Showing ' +
+                                Math.min(nextIdx, displayLimit) +
+                                ' of ' +
+                                filtered.length +
+                                ' issues' +
+                                (filtered.length > ISSUE_DISPLAY_CAP
+                                    ? ' (list capped at ' + ISSUE_DISPLAY_CAP + ')'
+                                    : '');
+                        if (nextIdx >= displayLimit) {
                             _issuesObserver.disconnect();
                             entry.target.remove();
                         }

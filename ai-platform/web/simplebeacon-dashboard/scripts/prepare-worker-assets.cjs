@@ -49,6 +49,10 @@ function rewriteWorkerImports(scanWorkerPath) {
     .replace(
       /(['"])\.\.\/\.\.\/js-es2018\/utils-lib\/simplebeaconignore\.browser\.js(?:\?[^'\"]*)?\1/g,
       "$1./simplebeaconignore.browser.js$1",
+    )
+    .replace(
+      /(['"])\.\.\/utils-lib\/simplebeaconignore\.browser\.js(?:\?[^'\"]*)?\1/g,
+      "$1./simplebeaconignore.browser.js$1",
     );
 
   if (original !== rewritten) {

@@ -6,7 +6,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { TOOL_DEFINITIONS } = require("../src/mcp/tools");
+const { SLIM_TOOL_NAMES } = require("../src/mcp/tools");
 
 const MCP_BIN = path.join(__dirname, "../bin/simplebeacon-mcp.js");
 const PROJECT_ROOT = path.join(__dirname, "../../..");
@@ -96,12 +96,13 @@ test("MCP stdio: initialize, tools/list, scan_snippet, gate_status", async () =>
   assert.equal(init?.result?.serverInfo?.name, "simplebeacon");
 
   const toolList = lines.find((m) => m.id === 2);
-  assert.equal(toolList?.result?.tools?.length, TOOL_DEFINITIONS.length);
+  assert.equal(toolList?.result?.tools?.length, SLIM_TOOL_NAMES.length);
 
   const snippet = lines.find((m) => m.id === 3);
   const snippetPayload = JSON.parse(snippet.result.content[0].text);
   assert.ok(snippetPayload.findingCount >= 1);
-  assert.equal(snippetPayload.localOnly, true);
+  assert.equal(snippetPayload.ok, true);
+  assert.ok(snippetPayload.findings[0].rule);
 
   const gate = lines.find((m) => m.id === 4);
   const gatePayload = JSON.parse(gate.result.content[0].text);
@@ -124,7 +125,7 @@ test("MCP stdio: scan_file on real project file", async () => {
       params: {
         name: "scan_file",
         arguments: {
-          filePath: "packages/simplebeacon-cli/README.md",
+          filePath: "packages/simplebeacon-cli/src/lib/scannable-path.js",
           projectRoot: PROJECT_ROOT,
         },
       },
@@ -133,7 +134,7 @@ test("MCP stdio: scan_file on real project file", async () => {
 
   const fileResult = lines.find((m) => m.id === 2);
   const payload = JSON.parse(fileResult.result.content[0].text);
-  assert.equal(payload.filePath, "packages/simplebeacon-cli/README.md");
+  assert.equal(payload.filePath, "packages/simplebeacon-cli/src/lib/scannable-path.js");
   assert.ok(Array.isArray(payload.findings));
 });
 

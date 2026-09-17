@@ -5,53 +5,54 @@ try {
   vscode = null;
 }
 
+const { buildWorkspaceVerificationPayload } = require('./ai-context');
+
+function jsonResult(payload) {
+  const text = JSON.stringify(payload);
+  if (vscode && vscode.lm && vscode.lm.LanguageModelTextPart && vscode.lm.LanguageModelToolResult) {
+    return new vscode.lm.LanguageModelToolResult([
+      new vscode.lm.LanguageModelTextPart(text),
+    ]);
+  }
+  return [{ text }];
+}
+
 class SimpleBeaconWorkspaceTool {
   async invoke(options, token) {
+    const input = (options && options.input) || {};
     const editor = vscode && vscode.window ? vscode.window.activeTextEditor : null;
-    if (!editor) {
-      const payload = JSON.stringify({ status: 'error', reason: 'No active editor' });
-      return new (vscode && vscode.lm ? vscode.lm.LanguageModelToolResult : Array)([
-        new (vscode && vscode.lm ? vscode.lm.LanguageModelTextPart : String)(payload),
-      ]);
+    let document = editor ? editor.document : null;
+
+    if (input.requestedFile && vscode && vscode.workspace && typeof vscode.workspace.openTextDocument === 'function') {
+      try {
+        document = await vscode.workspace.openTextDocument(input.requestedFile);
+      } catch (e) {
+        return jsonResult(buildWorkspaceVerificationPayload(null, input));
+      }
     }
 
-    const document = editor.document;
-    const result = {
-      status: 'ok',
-      file: document.uri.fsPath,
-      language: document.languageId,
-      lines: document.lineCount,
-      constraints: [
-        'preserve_existing_api',
-        'no_new_dependencies',
-        'avoid_unrelated_files',
-      ],
-    };
-
-    const payload = JSON.stringify({ simplebeacon: { version: 1 }, result });
-
-    if (vscode && vscode.lm && vscode.lm.LanguageModelTextPart && vscode.lm.LanguageModelToolResult) {
-      return new vscode.lm.LanguageModelToolResult([
-        new vscode.lm.LanguageModelTextPart(payload),
-      ]);
+    if (!document) {
+      return jsonResult(buildWorkspaceVerificationPayload(null, input));
     }
 
-    // Fallback for environments without the lm API
-    return [{ text: payload }];
+    return jsonResult(buildWorkspaceVerificationPayload(document, input));
   }
 
   async prepareInvocation(options, token) {
-    return { invocationMessage: 'SimpleBeacon is analyzing workspace context' };
+    return { invocationMessage: 'SimpleBeacon is verifying workspace files and symbols' };
   }
 }
 
 function registerSimpleBeaconTool(context) {
-  if (!vscode || !vscode.lm || !vscode.lm.registerTool) return;
+  if (!vscode || !vscode.lm || typeof vscode.lm.registerTool !== 'function') {
+    console.log('[SimpleBeacon] vscode.lm.registerTool unavailable — simplebeacon_workspace_context not registered');
+    return;
+  }
   try {
     const tool = new SimpleBeaconWorkspaceTool();
     context.subscriptions.push(vscode.lm.registerTool('simplebeacon_workspace_context', tool));
+    console.log('[SimpleBeacon] simplebeacon_workspace_context registered');
   } catch (e) {
-    // don't block activation if registration fails
     console.error('SimpleBeacon: LM tool registration failed', e && e.message);
   }
 }

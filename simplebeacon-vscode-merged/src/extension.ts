@@ -116,6 +116,9 @@ import {
 } from './exportGate';
 import { countLocalDirectoryInventory } from './routes/scanReport';
 import { ComplianceSidebarProvider } from './panels/ComplianceSidebar';
+import { optimizeAiContext, prepareScanContextForModel } from './lib/ai-context-optimizer';
+import { buildContextBrief } from './lib/ai-context-brief';
+import { registerSimpleBeaconLmTools } from './lib/ai-context-lm-tool';
 
 /** Decode the payload section of a JWT (3-part dot-separated token). */
 function decodeJwtPayload(token: string): Record<string, any> | null {
@@ -1648,6 +1651,8 @@ export async function activate(context: vscode.ExtensionContext) {
       );
     }
 
+    registerSimpleBeaconLmTools(context);
+
     // Initialize Phase 2 components
     aiCodeAnalyzer = AICodeAnalyzer.getInstance();
     advancedAnalytics = AdvancedAnalytics.getInstance();
@@ -3077,7 +3082,12 @@ export async function activate(context: vscode.ExtensionContext) {
               }
             );
             if (postRes.success && postRes.content) {
-              await vscode.env.clipboard.writeText(postRes.content);
+              await vscode.env.clipboard.writeText(
+                prepareScanContextForModel(
+                  postRes.content,
+                  String(payload.projectPath || ''),
+                ),
+              );
               showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
               return;
             }
@@ -3137,7 +3147,12 @@ export async function activate(context: vscode.ExtensionContext) {
             }
           );
           if (postRes.success && postRes.content) {
-            await vscode.env.clipboard.writeText(postRes.content);
+            await vscode.env.clipboard.writeText(
+              prepareScanContextForModel(
+                postRes.content,
+                String(payload.projectPath || ''),
+              ),
+            );
             showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
           } else {
             vscode.window.showWarningMessage('AI context saved but no content returned');
@@ -3145,6 +3160,37 @@ export async function activate(context: vscode.ExtensionContext) {
         } catch (err) {
           vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
         }
+      }),
+      registerCmd('simplebeacon.optimizeForGpt5Mini', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showInformationMessage('No active editor to copy context from.');
+          return;
+        }
+        const doc = editor.document;
+        const tree = [
+          ` - Open documents: ${vscode.workspace.textDocuments.length}`,
+          ` - Target: ${doc.uri.fsPath}`,
+        ].join('\n');
+        const result = optimizeAiContext(doc.fileName, doc.getText(), tree);
+        await vscode.env.clipboard.writeText(result.payload);
+        showQuietMessage(
+          `Optimized editor context copied (${result.shavedBytes} bytes removed). The file on disk was not changed.`,
+        );
+      }),
+      registerCmd('simplebeacon.generateAIContext', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage('SimpleBeacon: Open a source file first.');
+          return;
+        }
+        const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+        const brief = buildContextBrief(
+          editor.document,
+          folder ? folder.uri.fsPath : null,
+        );
+        await vscode.env.clipboard.writeText(brief);
+        showQuietMessage('SimpleBeacon AI Context copied to clipboard.');
       }),
       registerCmd('simplebeacon.sendSidebarToAi', async (report?: unknown) => {
         const data = (report || currentReport) as SidebarReport | null;
@@ -3199,7 +3245,12 @@ export async function activate(context: vscode.ExtensionContext) {
             }
           );
           if (postRes.success && postRes.content) {
-            await vscode.env.clipboard.writeText(postRes.content);
+            await vscode.env.clipboard.writeText(
+              prepareScanContextForModel(
+                postRes.content,
+                String(payload.projectPath || ''),
+              ),
+            );
             showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
           } else {
             vscode.window.showWarningMessage('AI context saved but no content returned');

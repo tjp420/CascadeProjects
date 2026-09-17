@@ -43,6 +43,7 @@ import {
 import { setLargeItem, removeLargeItem, getLargeItem } from "@/utils/dbStorage";
 import {
   collectScanIssues,
+  notifyScanSnapshotUpdated,
   selectIssuesForBrowserStorage,
 } from "@/lib/collect-scan-issues";
 import { EvidenceStatePanel } from "@/components/EvidenceStatePanel";
@@ -671,6 +672,17 @@ export function AnalyzeView() {
     }
   }, [scanState, result?.totalFiles]);
 
+  useEffect(() => {
+    try {
+      if (scanState === "scanning") {
+        localStorage.setItem("sb_scan_in_progress", "1");
+        notifyScanSnapshotUpdated();
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [scanState]);
+
   // Expose a dev/test-only storage helper on the window for E2E tests.
   useEffect(() => {
     try {
@@ -1056,6 +1068,7 @@ export function AnalyzeView() {
             } catch {
               /* ignore */
             }
+            notifyScanSnapshotUpdated();
           } catch (dbErr) {
             console.warn(
               "[SimpleBeacon] IndexedDB store failed, falling back to localStorage:",
@@ -1089,6 +1102,12 @@ export function AnalyzeView() {
       } catch (e) {
         console.warn("[SimpleBeacon] Failed to store sb_last_scan_time:", e);
       }
+      try {
+        localStorage.setItem("sb_scan_in_progress", "0");
+      } catch {
+        /* ignore */
+      }
+      notifyScanSnapshotUpdated();
     },
     [],
   );

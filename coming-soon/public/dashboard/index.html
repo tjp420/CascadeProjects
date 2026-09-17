@@ -715,7 +715,103 @@
     </script>
 
     <!-- React Dashboard Bundle — static module script so Lighthouse waits for render -->
-    <script type="module" src="/dashboard/assets/main.js?v=1788996010751"></script>
+    <!-- After React login (sb:login), hand the token to Cursor/VS Code. Bundle may still only accept vscode://. -->
+    <script>
+      (function () {
+        function isRelay(uri) {
+          return /^(vscode|cursor|vscode-insiders|windsurf):\/\/simplebeacon\.simplebeacon-vscode\/relay\/auth/i.test(
+            uri || ""
+          );
+        }
+        function inIdeFrame() {
+          try {
+            if (window.self !== window.top) return true;
+          } catch (e) {
+            return true;
+          }
+          var proto = String(location.protocol || "").toLowerCase();
+          return proto === "vscode-webview:" || proto === "vscode-file:";
+        }
+        function complete() {
+          try {
+            var token =
+              localStorage.getItem("sb_auth_token") ||
+              localStorage.getItem("sb_token") ||
+              "";
+            if (!token) return;
+            var user = {};
+            try {
+              user = JSON.parse(localStorage.getItem("sb_user") || "{}");
+            } catch (e) {}
+            var tier = user.tier || user.plan || "";
+            var role = String(user.role || "").toLowerCase();
+            var isAdmin = ["admin", "owner", "superuser", "superadmin"].includes(
+              role
+            );
+            var payload = {
+              command: "setAuthState",
+              signedIn: true,
+              tier: tier,
+              token: token,
+              isAdmin: isAdmin,
+            };
+            try {
+              window.parent.postMessage(payload, "*");
+            } catch (e) {}
+            var params = new URLSearchParams(location.search);
+            var notify =
+              params.get("sb_notify_base") ||
+              sessionStorage.getItem("sb_notify_base");
+            if (notify) {
+              fetch(String(notify).replace(/\/+$/, "") + "/notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: "setAuthState", payload: payload }),
+              }).catch(function () {});
+            }
+            var redirectUri = params.get("redirect_uri");
+            if (isRelay(redirectUri) && !inIdeFrame()) {
+              var join = redirectUri.indexOf("?") >= 0 ? "&" : "?";
+              location.href =
+                redirectUri +
+                join +
+                "token=" +
+                encodeURIComponent(token) +
+                "&signedIn=true&tier=" +
+                encodeURIComponent(tier) +
+                "&isAdmin=" +
+                isAdmin;
+            }
+          } catch (e) {}
+        }
+        window.addEventListener("sb:login", complete);
+        window.addEventListener("sb:license", complete);
+      })();
+    </script>
+    <script>
+      // Dev-mode loader: when running on localhost, prefer the source module
+      // so Vite serves and transforms `src/main.tsx` instead of the built bundle.
+      try {
+        var isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+        if (isLocal) {
+          var s = document.createElement('script');
+          s.type = 'module';
+          s.src = '/src/main.tsx';
+          document.head.appendChild(s);
+        }
+      } catch (e) {}
+    </script>
+    <script>
+      try {
+        var isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+        if (!isLocal) {
+          var s = document.createElement('script');
+          s.type = 'module';
+          s.src = '/dashboard/assets/main.js?v=1789618200000';
+          document.head.appendChild(s);
+        }
+      } catch (e) {}
+    </script>
     <script>
       (function () {
         try {

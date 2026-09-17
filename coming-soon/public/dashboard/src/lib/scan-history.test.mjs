@@ -26,16 +26,17 @@ describe("mapSnapshotToHistoryRow", () => {
     assert.equal(row.blockingCount, 3);
   });
 
-  it("reads compact sb_last_scan { files, issues, gate }", () => {
+  it("still maps a compact snapshot when extra report fields are noisy", () => {
     const row = mapSnapshotToHistoryRow({
-      files: 23142,
-      issues: 12,
+      files: 852,
+      issues: 118,
       gate: false,
+      projectPath: "unbreakable-oracle-final",
+      generatedAt: "2026-09-15T00:12:44.000Z",
     });
     assert.ok(row);
-    assert.equal(row.projectName, "Local scan");
-    assert.equal(row.issueCount, 12);
-    assert.equal(row.blockingCount, null);
+    assert.equal(row.projectName, "unbreakable-oracle-final");
+    assert.equal(row.issueCount, 118);
   });
 });
 

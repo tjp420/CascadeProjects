@@ -81,13 +81,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  [PASS] Extension compiles cleanly" -ForegroundColor Green
 
-# Sync dashboard web assets
-& npm run sync:dashboard-web 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
-if ($LASTEXITCODE -ne 0) {
-  Write-Host "  [WARN] Dashboard web sync had issues" -ForegroundColor DarkYellow
-} else {
-  Write-Host "  [PASS] Dashboard web assets synced" -ForegroundColor Green
-}
+# Do not xcopy ai-platform dashboard over dashboard-web (deletes extension-only files).
+Write-Host "  [SKIP] sync:dashboard-web — VSIX packages existing dashboard-web + compile" -ForegroundColor Green
 
 # Check for required fields in package.json
 if (-not $Pkg.publisher) {

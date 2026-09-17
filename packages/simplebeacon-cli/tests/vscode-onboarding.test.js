@@ -111,6 +111,11 @@ test("installDeveloperStack with starter writes both cursor + vscode + ci", () =
       path.join(tmp, ".cursor", "rules", "simplebeacon-scan-workflow.mdc"),
     ),
   );
+  assert.ok(
+    fs.existsSync(
+      path.join(tmp, ".cursor", "rules", "simplebeacon-scannable-types.mdc"),
+    ),
+  );
   assert.ok(fs.existsSync(path.join(tmp, ".vscode", "mcp.json")));
   assert.ok(
     fs.existsSync(path.join(tmp, ".github", "copilot-instructions.md")),

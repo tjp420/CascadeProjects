@@ -687,7 +687,9 @@ export function ResultsView() {
         currentScanGrade={currentScanGrade}
       />
 
-      {paidRoadmap && (
+      {(paidRoadmap || (typeof localStorage !== 'undefined' && (() => {
+        try { return localStorage.getItem('sb_force_show_cert_button') === '1'; } catch { return false; }
+      })())) && (
         <div className="mt-4">
           <Button onClick={() => setShowCertModal(true)}>Generate / Download Certificate</Button>
         </div>

@@ -1546,6 +1546,51 @@
                 font-weight: 600;
                 margin-bottom: 0;
             }
+            .custody-lead {
+                text-align: left;
+                color: var(--text-muted);
+                font-size: 16px;
+                line-height: 1.6;
+                margin: 0 0 20px;
+            }
+            .custody-split {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 12px;
+                margin: 20px 0 8px;
+                text-align: left;
+            }
+            @media (min-width: 720px) {
+                .custody-split {
+                    grid-template-columns: 1fr 1fr;
+                }
+            }
+            .custody-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px 18px;
+            }
+            .custody-card h3 {
+                font-size: 15px;
+                margin-bottom: 8px;
+            }
+            .custody-card ul {
+                margin: 0;
+                padding-left: 18px;
+                color: var(--text-muted);
+                font-size: 14px;
+                line-height: 1.55;
+            }
+            .inspect-line {
+                text-align: left;
+                font-size: 14px;
+                color: var(--text-muted);
+                margin-top: 16px;
+            }
+            .inspect-line a {
+                color: var(--accent);
+            }
         </style>
     </head>
     <body>
@@ -2363,7 +2408,7 @@ const conversionRate = '75%';</code></pre>
         </section>
 
         <!-- HOW IT WORKS -->
-        <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18)">
+        <section class="section" id="how-it-works" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18)">
             <div class="container narrow">
                 <h2>How it works</h2>
                 <ol class="works-flow">
@@ -2373,7 +2418,34 @@ const conversionRate = '75%';</code></pre>
                     <li>Developer fixes it</li>
                     <li>Commit</li>
                 </ol>
-                <p class="privacy-line">Runs locally. Your source stays in your environment.</p>
+                <p class="custody-lead">
+                    SimpleBeacon is zero-custody: source code, file bytes, and full finding lists stay on the machine that ran the scan. The cloud only sees account details you submit (email, product, scan list) and an optional hex scan fingerprint of counts plus project name—not the repo and not the finding list. Engineers can evaluate the CLI locally, then hand a verification report or this boundary to a manager. It is a verification trail, not a legal conformity certificate.
+                </p>
+                <div class="custody-split">
+                    <div class="custody-card">
+                        <h3>Stays local</h3>
+                        <ul>
+                            <li>Source and file bytes</li>
+                            <li>Scanner engine and <code>report.json</code></li>
+                            <li>Full finding lists and snippets</li>
+                        </ul>
+                    </div>
+                    <div class="custody-card">
+                        <h3>May touch Stripe or the API</h3>
+                        <ul>
+                            <li>Email and product for checkout</li>
+                            <li>Selected scans (for example executive clearance)</li>
+                            <li>Optional <code>scanHash</code> (hex, at least 16 characters)</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="inspect-line">
+                    Inspect the CLI on
+                    <a href="https://github.com/tjp420/simplebeacon">GitHub</a>.
+                    Paste a local JSON report on <a href="/roadmap">Roadmap</a> without uploading it.
+                    Scoped CLI gate:
+                    <a href="/shipping-paths.html">shipping-path scan</a>.
+                </p>
             </div>
         </section>
 
@@ -2443,7 +2515,8 @@ const conversionRate = '75%';</code></pre>
         <footer class="footer">
             <p>&copy; 2026 SimpleBeacon. All rights reserved.</p>
             <p class="footer-links">
-                <a href="/sample-report">Sample report</a> · <a href="/pricing">Pricing</a> ·
+                <a href="/sample-report">Sample report</a> · <a href="/shipping-paths.html">Shipping-path scan</a> ·
+                <a href="/pricing">Pricing</a> ·
                 <a href="/contact">Contact</a> · <a href="/terms">Terms</a> ·
                 <a href="/privacy">Privacy</a>
             </p>

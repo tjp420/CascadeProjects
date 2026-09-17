@@ -5,7 +5,10 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import { analyzeFileChunks, findingsToIssues } from "./scan-wasm-bridge.js";
+import {
+  analyzeFileChunks,
+  findingsToIssues,
+} from "./scan-wasm-bridge.js";
 import { isIgnoredVirtualPath } from "../utils-lib/simplebeaconignore.browser.js";
 
 /**

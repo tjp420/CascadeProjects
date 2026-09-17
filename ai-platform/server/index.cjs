@@ -1542,6 +1542,18 @@ try {
   logger.warn("[Simplebeacon] simplebeacon-api setup skipped:", e.message);
 }
 
+// Certificates API: mount and protect certificate endpoints
+try {
+  // Protect certificate endpoints with authentication middleware so
+  // unauthenticated requests receive 401 before hitting handlers.
+  app.use('/api/certificates', authenticate);
+  const { registerRoutes: setupCertificates } = require('../src/api/certificates.cjs');
+  setupCertificates(app);
+  logger.info('[Certificates] routes mounted at /api/certificates');
+} catch (e) {
+  logger.warn('[Certificates] setup skipped:', e.message);
+}
+
 // Audit log retrieval API ΓÇö paginated, strict memory limits (default LIMIT 50, max 200)
 app.use("/api/v2/audit", auditLogRouter);
 

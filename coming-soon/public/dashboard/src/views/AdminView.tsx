@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -42,6 +42,12 @@ import {
   ExternalLink,
   Mail,
   MessageSquare,
+  List,
+  LayoutGrid,
+  Table2,
+  ArrowUp,
+  ArrowDown,
+  ChevronsUpDown,
 } from "lucide-react";
 import { IntegrationsView } from "./IntegrationsView";
 import { UsageAnalyticsView } from "./UsageAnalyticsView";
@@ -141,6 +147,57 @@ type SsoConfig = {
   updatedAt: string;
 };
 
+type UserSortKey =
+  | "name"
+  | "email"
+  | "tier"
+  | "status"
+  | "plan"
+  | "joined"
+  | "seen";
+type UsersLayout = "details" | "list" | "tiles";
+
+const TIER_RANK: Record<string, number> = {
+  bronze: 1,
+  community: 1,
+  silver: 2,
+  developer: 2,
+  gold: 3,
+  team_pro: 3,
+  enterprise: 4,
+};
+
+function userPlanLabel(user: AdminUser): string {
+  if (user.hasActiveSubscription) {
+    return String(user.plan || user.tokenTier || "paid");
+  }
+  return "free";
+}
+
+function userSortValue(user: AdminUser, key: UserSortKey): string | number {
+  if (key === "name") return String(user.name || user.email || "").toLowerCase();
+  if (key === "email") return String(user.email || "").toLowerCase();
+  if (key === "tier")
+    return TIER_RANK[String(user.trustLevel || "bronze").toLowerCase()] || 0;
+  if (key === "status") return String(user.status || "active").toLowerCase();
+  if (key === "plan") return userPlanLabel(user).toLowerCase();
+  if (key === "joined") return Date.parse(String(user.createdAt || "")) || 0;
+  return Date.parse(String(user.lastSeen || "")) || 0;
+}
+
+function formatAdminDate(value?: string | null): string {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   org_created: { label: "Org Created", color: "text-green-600" },
   trial_started: { label: "Trial Started", color: "text-blue-600" },
@@ -187,6 +244,19 @@ export function AdminView() {
   const [userHasMore, setUserHasMore] = useState(false);
   const [userNextCursor, setUserNextCursor] = useState<string | null>(null);
   const [userTotal, setUserTotal] = useState(0);
+  const [usersLayout, setUsersLayout] = useState<UsersLayout>(() => {
+    try {
+      const stored = localStorage.getItem("sb_admin_users_layout");
+      if (stored === "details" || stored === "list" || stored === "tiles") {
+        return stored;
+      }
+    } catch {
+      /* ignore */
+    }
+    return "details";
+  });
+  const [userSortKey, setUserSortKey] = useState<UserSortKey>("joined");
+  const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   const userSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1038,6 +1108,167 @@ export function AdminView() {
     }
   }, []);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("sb_admin_users_layout", usersLayout);
+    } catch {
+      /* ignore */
+    }
+  }, [usersLayout]);
+
+  const toggleUserSort = useCallback((key: UserSortKey) => {
+    setUserSortKey((current) => {
+      if (current === key) {
+        setUserSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+        return current;
+      }
+      setUserSortDir(key === "name" || key === "email" ? "asc" : "desc");
+      return key;
+    });
+  }, []);
+
+  const sortedUsers = useMemo(() => {
+    const copy = users.slice();
+    copy.sort((a, b) => {
+      const av = userSortValue(a, userSortKey);
+      const bv = userSortValue(b, userSortKey);
+      let cmp = 0;
+      if (typeof av === "number" && typeof bv === "number") {
+        cmp = av - bv;
+      } else {
+        cmp = String(av).localeCompare(String(bv), undefined, {
+          sensitivity: "base",
+        });
+      }
+      return userSortDir === "asc" ? cmp : -cmp;
+    });
+    return copy;
+  }, [users, userSortKey, userSortDir]);
+
+  const renderUserActions = (user: AdminUser, compact = false) => (
+    <div
+      className={`flex items-center gap-1 ${compact ? "" : "ml-12 mt-2"}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 px-2 text-xs"
+        onClick={() => {
+          setActionUser(user);
+          const currentTier = user.plan || user.tokenTier || "community";
+          setActionTier(currentTier);
+          setActionDialog("upgrade");
+          setActionPassword("");
+        }}
+        title="Set tier"
+      >
+        <Crown className="h-3 w-3" />
+        {!compact && <span className="ml-1">Tier</span>}
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 px-2 text-xs"
+        onClick={() => {
+          setActionUser(user);
+          setContactSubject("");
+          setContactMessage("");
+          setActionPassword("");
+          setActionDialog("contact");
+        }}
+        title="Contact user"
+      >
+        <Mail className="h-3 w-3" />
+        {!compact && <span className="ml-1">Contact</span>}
+      </Button>
+      {user.status === "active" ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-xs text-orange-600"
+          onClick={() => {
+            setActionUser(user);
+            setActionDialog("suspend");
+            setActionPassword("");
+          }}
+          title="Suspend user"
+        >
+          <Ban className="h-3 w-3" />
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-xs text-green-600"
+          onClick={() => {
+            setActionUser(user);
+            setActionDialog("unsuspend");
+          }}
+          title="Unsuspend user"
+        >
+          <CheckCircle2 className="h-3 w-3" />
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 px-2 text-xs text-red-600"
+        onClick={() => {
+          setActionUser(user);
+          setActionDialog("delete");
+          setActionPassword("");
+          setActionConfirmEmail("");
+        }}
+        title="Delete user"
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 px-2 text-xs"
+        onClick={() => openUserDetails(user)}
+        title="View profile"
+      >
+        <UserCircle className="h-3 w-3" />
+        {!compact && <span className="ml-1">Profile</span>}
+      </Button>
+    </div>
+  );
+
+  const SortHeader = ({
+    label,
+    sortKey,
+    className = "",
+  }: {
+    label: string;
+    sortKey: UserSortKey;
+    className?: string;
+  }) => {
+    const active = userSortKey === sortKey;
+    return (
+      <button
+        type="button"
+        onClick={() => toggleUserSort(sortKey)}
+        className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide hover:text-foreground ${
+          active ? "text-foreground" : "text-foreground-muted"
+        } ${className}`}
+      >
+        {label}
+        {active ? (
+          userSortDir === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-3 w-3 opacity-40" />
+        )}
+      </button>
+    );
+  };
+
   // Debounced search trigger
   useEffect(() => {
     if (userSearchTimer.current) clearTimeout(userSearchTimer.current);
@@ -1454,14 +1685,47 @@ export function AdminView() {
 
           {/* User List */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Users</CardTitle>
-              <CardDescription>
-                {userTotal > 0 ? `${userTotal} total` : "Recent registered users"}
-              </CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+              <div>
+                <CardTitle className="text-lg">Users</CardTitle>
+                <CardDescription>
+                  {userTotal > 0 ? `${userTotal} total` : "Recent registered users"}
+                </CardDescription>
+              </div>
+              <div
+                className="inline-flex rounded-md border border-border bg-muted/40 p-0.5"
+                role="group"
+                aria-label="User list layout"
+              >
+                {(
+                  [
+                    { id: "details", icon: Table2, label: "Details" },
+                    { id: "list", icon: List, label: "List" },
+                    { id: "tiles", icon: LayoutGrid, label: "Tiles" },
+                  ] as const
+                ).map((mode) => {
+                  const Icon = mode.icon;
+                  const active = usersLayout === mode.id;
+                  return (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      title={mode.label}
+                      onClick={() => setUsersLayout(mode.id)}
+                      className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${
+                        active
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-foreground-muted hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{mode.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </CardHeader>
             <CardContent>
-              {/* Search + Load More */}
               <div className="flex items-center gap-2 mb-4">
                 <Input
                   type="text"
@@ -1481,27 +1745,148 @@ export function AdminView() {
                 )}
               </div>
 
-              {users.length === 0 ? (
+              {sortedUsers.length === 0 ? (
                 <p className="text-sm text-foreground-muted text-center py-4">
                   No users found
                 </p>
+              ) : usersLayout === "details" ? (
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="w-full min-w-[920px] border-collapse text-sm">
+                    <thead className="sticky top-0 bg-muted/80 backdrop-blur">
+                      <tr className="border-b border-border">
+                        <th className="px-3 py-2 text-left">
+                          <SortHeader label="Name" sortKey="name" />
+                        </th>
+                        <th className="px-3 py-2 text-left">
+                          <SortHeader label="Email" sortKey="email" />
+                        </th>
+                        <th className="px-3 py-2 text-left">
+                          <SortHeader label="Tier" sortKey="tier" />
+                        </th>
+                        <th className="px-3 py-2 text-left">
+                          <SortHeader label="Status" sortKey="status" />
+                        </th>
+                        <th className="px-3 py-2 text-left">
+                          <SortHeader label="Plan" sortKey="plan" />
+                        </th>
+                        <th className="px-3 py-2 text-left">
+                          <SortHeader label="Joined" sortKey="joined" />
+                        </th>
+                        <th className="px-3 py-2 text-left">
+                          <SortHeader label="Last seen" sortKey="seen" />
+                        </th>
+                        <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-foreground-muted">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedUsers.map((user, i) => {
+                        const { variant, icon: Icon } = tierBadge(user.trustLevel);
+                        return (
+                          <tr
+                            key={user.id || i}
+                            className="cursor-pointer border-b border-border/70 hover:bg-muted/40"
+                            onClick={() => openUserDetails(user)}
+                          >
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted shrink-0">
+                                  <Icon className="h-3.5 w-3.5" />
+                                </div>
+                                <span className="font-medium truncate">
+                                  {user.name || user.email || "Unknown"}
+                                </span>
+                                {user.online && (
+                                  <span
+                                    className="h-2 w-2 rounded-full bg-green-500 shrink-0"
+                                    title="Online now"
+                                  />
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-foreground-muted truncate max-w-[220px]">
+                              {user.email || "—"}
+                            </td>
+                            <td className="px-3 py-2">
+                              <Badge variant={variant} className="text-xs capitalize">
+                                {user.trustLevel || "bronze"}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2">
+                              <Badge
+                                variant={user.status === "active" ? "success" : "danger"}
+                                className="text-xs capitalize"
+                              >
+                                {user.status || "active"}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2 capitalize text-foreground-muted">
+                              {userPlanLabel(user)}
+                            </td>
+                            <td className="px-3 py-2 text-foreground-muted whitespace-nowrap">
+                              {formatAdminDate(user.createdAt)}
+                            </td>
+                            <td className="px-3 py-2 text-foreground-muted whitespace-nowrap">
+                              {user.online ? "Online" : formatAdminDate(user.lastSeen)}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              {renderUserActions(user, true)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : usersLayout === "list" ? (
+                <div className="overflow-hidden rounded-md border border-border divide-y divide-border">
+                  {sortedUsers.map((user, i) => {
+                    const { icon: Icon } = tierBadge(user.trustLevel);
+                    return (
+                      <div
+                        key={user.id || i}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40 cursor-pointer"
+                        onClick={() => openUserDetails(user)}
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">
+                              {user.name || user.email || "Unknown"}
+                            </span>
+                            {user.online && (
+                              <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                            )}
+                          </div>
+                          <span className="text-xs text-foreground-muted truncate block">
+                            {user.email || "—"}
+                          </span>
+                        </div>
+                        <span className="hidden md:inline text-xs text-foreground-muted capitalize w-20">
+                          {user.trustLevel || "bronze"}
+                        </span>
+                        <span className="hidden lg:inline text-xs text-foreground-muted w-24">
+                          {formatAdminDate(user.createdAt)}
+                        </span>
+                        {renderUserActions(user, true)}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                <div className="space-y-2">
-                  {users.map((user, i) => {
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {sortedUsers.map((user, i) => {
                     const { variant, icon: Icon } = tierBadge(user.trustLevel);
                     const subActive = user.hasActiveSubscription;
-                    const hasLicense = user.hasLicenseToken;
-                    const tokenOk = user.tokenValid;
-                    const tokenExp = user.tokenExpired;
-                    const created = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : null;
-                    const lastSeen = user.lastSeen ? new Date(user.lastSeen).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : null;
                     return (
                       <div
                         key={user.id || i}
                         className="rounded-lg border p-3 hover:border-primary/30 transition-colors cursor-pointer"
                         onClick={() => openUserDetails(user)}
                       >
-                        {/* Row 1: identity + badges */}
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted shrink-0">
                             <Icon className="h-4 w-4" />
@@ -1522,153 +1907,27 @@ export function AdminView() {
                               {user.email || "—"}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <Badge variant={variant} className="text-xs capitalize">
-                              {user.trustLevel || "bronze"}
-                            </Badge>
-                            <Badge
-                              variant={user.status === "active" ? "success" : "danger"}
-                              className="text-xs capitalize"
-                            >
-                              {user.status || "active"}
-                            </Badge>
-                          </div>
+                          <Badge variant={variant} className="text-xs capitalize">
+                            {user.trustLevel || "bronze"}
+                          </Badge>
                         </div>
-
-                        {/* Row 2: account feature chips */}
-                        <div className="flex flex-wrap items-center gap-1.5 mt-2.5 ml-12">
-                          {/* Subscription status */}
-                          {subActive ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-green-500/10 px-2 py-0.5 text-[11px] font-medium text-green-600">
-                              <DollarSign className="h-3 w-3" />
-                              {user.plan || user.tokenTier || "paid"}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
-                              <DollarSign className="h-3 w-3" />
-                              free tier
-                            </span>
-                          )}
-
-                          {/* License token */}
-                          {hasLicense && (
-                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${tokenOk ? "bg-blue-500/10 text-blue-600" : tokenExp ? "bg-orange-500/10 text-orange-600" : "bg-muted text-foreground-muted"}`}>
-                              <Key className="h-3 w-3" />
-                              {tokenOk ? "license active" : tokenExp ? "license expired" : "license invalid"}
-                            </span>
-                          )}
-
-                          {/* Subscription status label */}
-                          {user.subscriptionStatus && user.subscriptionStatus !== "inactive" && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted capitalize">
-                              <Activity className="h-3 w-3" />
-                              {user.subscriptionStatus}
-                            </span>
-                          )}
-
-                          {/* Created date */}
-                          {created && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
-                              <Clock className="h-3 w-3" />
-                              joined {created}
-                            </span>
-                          )}
-
-                          {/* Last seen */}
-                          {lastSeen && !user.online && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
-                              last seen {lastSeen}
-                            </span>
-                          )}
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <Badge
+                            variant={user.status === "active" ? "success" : "danger"}
+                            className="text-xs capitalize"
+                          >
+                            {user.status || "active"}
+                          </Badge>
+                          <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
+                            <DollarSign className="h-3 w-3" />
+                            {subActive ? userPlanLabel(user) : "free tier"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground-muted">
+                            <Clock className="h-3 w-3" />
+                            {formatAdminDate(user.createdAt)}
+                          </span>
                         </div>
-
-                        {/* Row 3: action buttons */}
-                        <div className="flex items-center gap-1 ml-12 mt-2" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => {
-                              setActionUser(user);
-                              const currentTier = user.plan || user.tokenTier || "community";
-                              setActionTier(currentTier);
-                              setActionDialog("upgrade");
-                              setActionPassword("");
-                            }}
-                            title="Set tier"
-                          >
-                            <Crown className="h-3 w-3" />
-                            <span className="ml-1">Tier</span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => {
-                              setActionUser(user);
-                              setContactSubject("");
-                              setContactMessage("");
-                              setActionPassword("");
-                              setActionDialog("contact");
-                            }}
-                            title="Contact user"
-                          >
-                            <Mail className="h-3 w-3" />
-                            <span className="ml-1">Contact</span>
-                          </Button>
-                          {user.status === "active" ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-xs text-orange-600"
-                              onClick={() => {
-                                setActionUser(user);
-                                setActionDialog("suspend");
-                                setActionPassword("");
-                              }}
-                              title="Suspend user"
-                            >
-                              <Ban className="h-3 w-3" />
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-xs text-green-600"
-                              onClick={() => {
-                                setActionUser(user);
-                                setActionDialog("unsuspend");
-                              }}
-                              title="Unsuspend user"
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs text-red-600"
-                            onClick={() => {
-                              setActionUser(user);
-                              setActionDialog("delete");
-                              setActionPassword("");
-                              setActionConfirmEmail("");
-                            }}
-                            title="Delete user"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => openUserDetails(user)}
-                            title="View profile"
-                          >
-                            <UserCircle className="h-3 w-3" />
-                            <span className="ml-1">Profile</span>
-                          </Button>
-                        </div>
+                        {renderUserActions(user)}
                       </div>
                     );
                   })}
