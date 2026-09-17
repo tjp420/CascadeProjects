@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
-import { getExecutiveSession } from "@/lib/executive-checkout";
+import {
+  EXECUTIVE_CLEARANCE_FLAG_KEY,
+  getExecutiveSession,
+  isExecutiveAccessActive,
+} from "@/lib/executive-checkout";
 
 export type FeatureFlag =
   | "canMapEuAiAct"
@@ -139,6 +143,17 @@ const FREE_TIERS = new Set(["free", "community", "sandbox", "", "bronze"]);
 function resolveTier(
   user: { role?: string; plan?: string; tier?: string } | null,
 ): string {
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      (localStorage.getItem(EXECUTIVE_CLEARANCE_FLAG_KEY) === "1" ||
+        isExecutiveAccessActive())
+    ) {
+      return "executive_clearance";
+    }
+  } catch {
+    /* ignore */
+  }
   if (!user) return "free";
   const role = String(user.role || "").toLowerCase();
   if (role === "admin" || role === "superuser") return "enterprise";

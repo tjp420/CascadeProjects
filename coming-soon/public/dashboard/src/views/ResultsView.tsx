@@ -30,7 +30,11 @@ import { navigate } from "@/router/HashRouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { PremiumUnlockCallout } from "@/components/PremiumUnlockCallout";
-import { remainingLockedRows, createExecutiveSession } from "@/lib/executive-checkout";
+import {
+  remainingLockedRows,
+  completeExecutiveCheckoutReturn,
+  downloadExecutiveCertificateSvg,
+} from "@/lib/executive-checkout";
 import { ResultsReferralBanner } from "@/components/ResultsReferralBanner";
 import { PostScanCliNudge } from "@/components/PostScanCliNudge";
 import { PostScanShareBanner } from "@/components/PostScanShareBanner";
@@ -247,6 +251,10 @@ export function ResultsView() {
   const { hasFeature } = useFeatureAccess();
   const paidRoadmap = hasFeature("canExportCertificates");
 
+  useEffect(() => {
+    void completeExecutiveCheckoutReturn();
+  }, []);
+
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     try {
@@ -265,17 +273,6 @@ export function ResultsView() {
     } catch {
       /* ignore */
     }
-    // If the URL contains an `exec_session` param, hydrate local executive session
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const sid = params.get("exec_session");
-      if (sid) {
-        createExecutiveSession({ sessionId: sid });
-        try { toast.success("Executive access granted (local)"); } catch {}
-        // remove param so refresh doesn't re-run
-        try { window.history.replaceState({}, "", window.location.pathname); } catch {}
-      }
-    } catch {}
   }, []);
 
   useEffect(() => {
@@ -1688,6 +1685,20 @@ export function ResultsView() {
               >
                 <Download className="h-4 w-4" /> Remediation Roadmap
               </Button>
+              {paidRoadmap && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    downloadExecutiveCertificateSvg({
+                      projectName: result?.projectPath || historyRow?.projectName,
+                      email: user?.email,
+                    });
+                    toast.success("Executive certificate SVG downloaded");
+                  }}
+                >
+                  <Download className="h-4 w-4" /> Download Executive Certificate
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

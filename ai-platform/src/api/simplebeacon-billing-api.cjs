@@ -985,6 +985,11 @@ function setupSimplebeaconBillingRoutes(app) {
         licenseToken,
         token: licenseToken,
         tier: record?.licenseTier || record?.tier || null,
+        canExportCertificates:
+          session.payment_status === "paid" &&
+          (session.metadata?.product === "executive_clearance" ||
+            record?.licenseTier === "executive" ||
+            record?.product === "executive_clearance"),
         certProfile: {
           clientName: record?.certClientName || null,
           projectName: record?.certProjectName || null,
