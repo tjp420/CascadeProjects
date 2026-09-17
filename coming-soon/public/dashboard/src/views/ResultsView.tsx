@@ -39,7 +39,11 @@ import {
   splitIssuesByLane,
   type IssueLane,
 } from "@/lib/issue-lanes";
-import { countIssuesBySeverity } from "@/lib/collect-scan-issues";
+import { countIssuesBySeverity, SCAN_UPDATED_EVENT } from "@/lib/collect-scan-issues";
+import {
+  getLocalScanHistory,
+  type LocalScanHistoryRow,
+} from "@/lib/scan-history";
 import {
   buildExecutiveBriefModel,
   downloadBrowserFile,
@@ -168,6 +172,51 @@ function syncReportToVscodeSidebar(
   }
 }
 
+function LastScanHistoryRow({ row }: { row: LocalScanHistoryRow | null }) {
+  if (!row) return null;
+  const when = row.timestamp
+    ? (() => {
+        try {
+          return new Date(row.timestamp).toLocaleString();
+        } catch {
+          return row.timestamp;
+        }
+      })()
+    : "time unknown";
+  const findings =
+    row.issueCount == null ? "—" : row.issueCount.toLocaleString();
+  const blocking =
+    row.blockingCount == null ? "—" : String(row.blockingCount);
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Last local scan</CardTitle>
+        <CardDescription>
+          Snapshot from this browser — not a scan archive
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <span>
+          <span className="text-foreground-muted">Project </span>
+          {row.projectName}
+        </span>
+        <span>
+          <span className="text-foreground-muted">When </span>
+          {when}
+        </span>
+        <span>
+          <span className="text-foreground-muted">Findings </span>
+          {findings}
+        </span>
+        <span>
+          <span className="text-foreground-muted">Blocking </span>
+          {blocking}
+        </span>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ResultsView() {
   const [issueLane, setIssueLane] = useState<IssueLane>("production");
   const [filter, setFilter] = useState<string>("all");
@@ -183,6 +232,9 @@ export function ResultsView() {
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
+  const [historyRow, setHistoryRow] = useState<LocalScanHistoryRow | null>(
+    null,
+  );
   const { user } = useAuth();
   const { hasFeature } = useFeatureAccess();
   const paidRoadmap = hasFeature("canExportCertificates");
@@ -205,6 +257,26 @@ export function ResultsView() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadHistory = async () => {
+      try {
+        const rows = await getLocalScanHistory();
+        if (!cancelled) setHistoryRow(rows[0] || null);
+      } catch {
+        if (!cancelled) setHistoryRow(null);
+      }
+    };
+    void loadHistory();
+    window.addEventListener(SCAN_UPDATED_EVENT, loadHistory);
+    window.addEventListener("storage", loadHistory);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SCAN_UPDATED_EVENT, loadHistory);
+      window.removeEventListener("storage", loadHistory);
+    };
   }, []);
 
   // If localStorage doesn't contain the full report (quota or missing), fall back to IndexedDB.
@@ -413,6 +485,7 @@ export function ResultsView() {
             stay on Test Suite Health
           </p>
         </div>
+        <LastScanHistoryRow row={historyRow} />
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16">
             <ClipboardList className="h-12 w-12 text-foreground-muted" />
@@ -451,6 +524,8 @@ export function ResultsView() {
           stay on Test Suite Health
         </p>
       </div>
+
+      <LastScanHistoryRow row={historyRow} />
 
       <EvidenceStatePanel report={reportForIssues || fullReport || result} />
 
