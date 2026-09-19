@@ -171,7 +171,7 @@
     "http-errors": "^2.0.1",
     "ioredis": "^6.0.0",
     "joi": "^18.2.1",
-    "js-yaml": "^5.2.3",
+    "js-yaml": "^5.4.2",
     "jsonwebtoken": "^9.0.3",
     "mlkem": "^2.7.0",
     "multer": "^2.3.0",
